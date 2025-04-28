@@ -18,7 +18,7 @@ const Orders = () => {
     await updateRestaurantOrder(id, status);
   };
   useEffect(() => {
-    getRestaurantOrders(); 
+    getRestaurantOrders();
   }, []);
   return (
     <div className="max-w-6xl mx-auto py-10 px-6">
@@ -39,8 +39,9 @@ const Orders = () => {
               </p>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
                 <span className="font-semibold">Total Amount: </span>
-                {order.totalAmount / 100}
+                ₹{(Number(order.totalAmount) / 100 || 0).toFixed(2)}
               </p>
+
             </div>
             <div className="w-full sm:w-1/3">
               <Label className="block text-sm font-medium text-gray-700 dark:text-gray300 mb-2">

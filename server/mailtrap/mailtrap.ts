@@ -1,18 +1,16 @@
-const SibApiV3Sdk = require("sib-api-v3-sdk");
+/// <reference path="../sib-api-v3-sdk.d.ts" />
+import SibApiV3Sdk from "sib-api-v3-sdk";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Initialize the API client
-const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
+const apiKey = defaultClient.authentications["api-key"];
+apiKey.apiKey = process.env.BREVO_API_KEY!;
 
-// Set API key manually
-const apiKey = new SibApiV3Sdk.ApiClient().authentications['api-key'];
-apiKey.apiKey = process.env.BREVO_API_KEY || ""; 
-
-export const client = apiInstance;
+export const client = new SibApiV3Sdk.TransactionalEmailsApi();
 
 export const sender = {
-  email: process.env.BREVO_SENDER_EMAIL || "default@example.com",
-  name: process.env.BREVO_SENDER_NAME || "Default Sender",
+  email: process.env.BREVO_SENDER_EMAIL || "rushikesh@foodinest.site",
+  name: process.env.BREVO_SENDER_NAME || "FoodiNest",
 };

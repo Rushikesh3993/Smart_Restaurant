@@ -1,84 +1,73 @@
-import { generatePasswordResetEmailHtml, generateResetSuccessEmailHtml, generateWelcomeEmailHtml, htmlContent } from "./htmlEmail";
-import { client, sender } from "./mailtrap";
-
-export const sendVerificationEmail = async (email: string, verificationToken: string) => {
-    const recipient = [{ email }];
+import {
+    generatePasswordResetEmailHtml,
+    generateResetSuccessEmailHtml,
+    generateWelcomeEmailHtml,
+    htmlContent,
+  } from "./htmlEmail";
+  import { client, sender } from "./mailtrap"; // or emailClient if you renamed it
+  
+  export const sendVerificationEmail = async (email: string, verificationToken: string) => {
+    const html = htmlContent.replace("{verificationToken}", verificationToken);
     try {
-        const sendSmtpEmail = {
-            sender: sender,
-            to: recipient,
-            subject: 'Verify your email',
-            htmlContent: htmlContent.replace("{verificationToken}", verificationToken),
-            headers: { "category": "Email Verification" }
-        };
-
-        const res = await client.sendTransacEmail(sendSmtpEmail);
-        console.log("Verification email sent:", res);
+      const res = await client.sendTransacEmail({
+        sender,
+        to: [{ email }],
+        subject: "Verify your email",
+        htmlContent: html,
+        headers: { category: "Email Verification" },
+      });
+      console.log("Verification email sent:", res);
     } catch (error) {
-        console.error("Error sending verification email:", error);
-        throw new Error("Failed to send email verification");
+      console.error("Error sending verification email:", error);
+      throw new Error("Failed to send email verification");
     }
-};
-
-export const sendWelcomeEmail = async (email: string, name: string) => {
-    const recipient = [{ email }];
-    const htmlContent = generateWelcomeEmailHtml(name);
+  };
+  
+  export const sendWelcomeEmail = async (email: string, name: string) => {
+    const html = generateWelcomeEmailHtml(name);
     try {
-        const sendSmtpEmail = {
-            sender: sender,
-            to: recipient,
-            subject: 'Welcome to FoodiNest',
-            htmlContent: htmlContent,
-            params: {
-                company_info_name: "FoodiNest",
-                name: name
-            }
-        };
-
-        const res = await client.sendTransacEmail(sendSmtpEmail);
-        console.log("Welcome email sent:", res);
+      const res = await client.sendTransacEmail({
+        sender,
+        to: [{ email }],
+        subject: "Welcome to FoodiNest",
+        htmlContent: html,
+      });
+      console.log("Welcome email sent:", res);
     } catch (error) {
-        console.error("Error sending welcome email:", error);
-        throw new Error("Failed to send welcome email");
+      console.error("Error sending welcome email:", error);
+      throw new Error("Failed to send welcome email");
     }
-};
-
-export const sendPasswordResetEmail = async (email: string, resetURL: string) => {
-    const recipient = [{ email }];
-    const htmlContent = generatePasswordResetEmailHtml(resetURL);
+  };
+  
+  export const sendPasswordResetEmail = async (email: string, resetURL: string) => {
+    const html = generatePasswordResetEmailHtml(resetURL);
     try {
-        const sendSmtpEmail = {
-            sender: sender,
-            to: recipient,
-            subject: 'Reset your password',
-            htmlContent: htmlContent,
-            headers: { "category": "Reset Password" }
-        };
-
-        const res = await client.sendTransacEmail(sendSmtpEmail);
-        console.log("Password reset email sent:", res);
+      const res = await client.sendTransacEmail({
+        sender,
+        to: [{ email }],
+        subject: "Reset your password",
+        htmlContent: html,
+      });
+      console.log("Password reset email sent:", res);
     } catch (error) {
-        console.error("Error sending password reset email:", error);
-        throw new Error("Failed to reset password");
+      console.error("Error sending password reset email:", error);
+      throw new Error("Failed to send password reset email");
     }
-};
-
-export const sendResetSuccessEmail = async (email: string) => {
-    const recipient = [{ email }];
-    const htmlContent = generateResetSuccessEmailHtml();
+  };
+  
+  export const sendResetSuccessEmail = async (email: string) => {
+    const html = generateResetSuccessEmailHtml();
     try {
-        const sendSmtpEmail = {
-            sender: sender,
-            to: recipient,
-            subject: 'Password Reset Successfully',
-            htmlContent: htmlContent,
-            headers: { "category": "Password Reset" }
-        };
-
-        const res = await client.sendTransacEmail(sendSmtpEmail);
-        console.log("Password reset success email sent:", res);
+      const res = await client.sendTransacEmail({
+        sender,
+        to: [{ email }],
+        subject: "Password Reset Successfully",
+        htmlContent: html,
+      });
+      console.log("Password reset success email sent:", res);
     } catch (error) {
-        console.error("Error sending password reset success email:", error);
-        throw new Error("Failed to send password reset success email");
+      console.error("Error sending password reset success email:", error);
+      throw new Error("Failed to send password reset success email");
     }
-};
+  };
+  

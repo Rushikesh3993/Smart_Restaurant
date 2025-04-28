@@ -11,7 +11,8 @@ import { FormEvent, useRef, useState } from "react";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
-import { useUserStore } from "@/store/useUserStore";
+import { useUserStore } from "../store/useUserStore";
+import React from "react";
 
 const Profile = () => {
   const { user, updateProfile } = useUserStore();
@@ -23,6 +24,7 @@ const Profile = () => {
     city: user?.city || "",
     country: user?.country || "",
     profilePicture: user?.profilePicture || "",
+    admin: user?.admin || false,  // 👈 Add this line
   });
   const imageRef = useRef<HTMLInputElement | null>(null);
   const [selectedProfilePicture, setSelectedProfilePicture] = useState<string>(

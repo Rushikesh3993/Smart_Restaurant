@@ -23,8 +23,8 @@ const SearchPage = () => {
   } = useRestaurantStore();
 
   useEffect(() => {
-    searchRestaurant(params.text!, searchQuery, appliedFilter);
-  }, [params.text!, appliedFilter]);
+    searchRestaurant(searchQuery || params.text!, searchQuery, appliedFilter);
+  }, [searchQuery, appliedFilter, params.text]);
 
   return (
     <div className="max-w-7xl mx-auto my-10">
@@ -55,26 +55,28 @@ const SearchPage = () => {
                 ({searchedRestaurant?.data.length}) Search result found
               </h1>
               <div className="flex flex-wrap gap-2 mb-4 md:mb-0">
-                {appliedFilter.map(
-                  (selectedFilter: string, idx: number) => (
-                    <div
-                      key={idx}
-                      className="relative inline-flex items-center max-w-full"
+                {appliedFilter.map((selectedFilter: string, idx: number) => (
+                  <div
+                    key={idx}
+                    className="relative inline-flex items-center max-w-full"
+                  >
+                    <Badge
+                      className="text-[#D19254] rounded-md hover:cursor-pointer pr-6 whitespace-nowrap"
+                      variant="outline"
                     >
-                      <Badge
-                        className="text-[#D19254] rounded-md hover:cursor-pointer pr-6 whitespace-nowrap"
-                        variant="outline"
-                      >
-                        {selectedFilter}
-                      </Badge>
-                      <X
-                        onClick={() => setAppliedFilter(selectedFilter)}
-                        size={16}
-                        className="absolute text-[#D19254] right-1 hover:cursor-pointer"
-                      />
-                    </div>
-                  )
-                )}
+                      {selectedFilter}
+                    </Badge>
+                    <X
+                      onClick={() =>
+                        setAppliedFilter(
+                          appliedFilter.filter((item) => item !== selectedFilter)
+                        )
+                      }
+                      size={16}
+                      className="absolute text-[#D19254] right-1 hover:cursor-pointer"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
             {/* Restaurant Cards  */}
@@ -124,16 +126,14 @@ const SearchPage = () => {
                         </p>
                       </div>
                       <div className="flex gap-2 mt-4 flex-wrap">
-                        {restaurant.cuisines.map(
-                          (cuisine: string, idx: number) => (
-                            <Badge
-                              key={idx}
-                              className="font-medium px-2 py-1 rounded-full shadow-sm"
-                            >
-                              {cuisine}
-                            </Badge>
-                          )
-                        )}
+                        {restaurant.cuisines.map((cuisine: string, idx: number) => (
+                          <Badge
+                            key={idx}
+                            className="font-medium px-2 py-1 rounded-full shadow-sm"
+                          >
+                            {cuisine}
+                          </Badge>
+                        ))}
                       </div>
                     </CardContent>
                     <CardFooter className="p-4 border-t dark:border-t-gray-700 border-t-gray-100 text-white flex justify-end">
@@ -156,6 +156,7 @@ const SearchPage = () => {
 
 export default SearchPage;
 
+// -------------------- Skeleton ---------------------
 const SearchPageSkeleton = () => {
   return (
     <>
@@ -192,6 +193,7 @@ const SearchPageSkeleton = () => {
   );
 };
 
+// -------------------- No Result ---------------------
 const NoResultFound = ({ searchText }: { searchText: string }) => {
   return (
     <div className="text-center">

@@ -11,6 +11,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuGroup,
 } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
 import {
@@ -24,6 +27,8 @@ import {
   Sun,
   User,
   UtensilsCrossed,
+  Settings,
+  LogOut,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
@@ -82,7 +87,7 @@ const Navbar = () => {
             </Link>
 
             <Link
-              to="/order/status"
+              to="/order/success"
               className="px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300
     text-gray-800 dark:text-gray-100
     bg-white dark:bg-transparent
@@ -93,23 +98,23 @@ const Navbar = () => {
               Order
             </Link>
 
-            {user?.admin && (
-              <Menubar>
-                <MenubarMenu>
-                  <MenubarTrigger>Dashboard</MenubarTrigger>
-                  <MenubarContent>
-                    <Link to="/admin/restaurant">
-                      <MenubarItem>Restaurant</MenubarItem>
-                    </Link>
-                    <Link to="/admin/menu">
-                      <MenubarItem>Menu</MenubarItem>
-                    </Link>
-                    <Link to="/admin/orders">
-                      <MenubarItem>Orders</MenubarItem>
-                    </Link>
-                  </MenubarContent>
-                </MenubarMenu>
-              </Menubar>
+            {(user?.role === "admin" || user?.role === "restaurant_owner") && (
+               <Menubar>
+               <MenubarMenu>
+                 <MenubarTrigger>Dashboard</MenubarTrigger>
+                 <MenubarContent>
+                   <Link to="/admin/restaurant">
+                     <MenubarItem>Restaurant</MenubarItem>
+                   </Link>
+                   <Link to="/admin/menu">
+                     <MenubarItem>Menu</MenubarItem>
+                   </Link>
+                   <Link to="/admin/orders">
+                     <MenubarItem>Orders</MenubarItem>
+                   </Link>
+                 </MenubarContent>
+               </MenubarMenu>
+             </Menubar>
             )}
           </div>
           <div className="flex items-center gap-4">
@@ -142,8 +147,13 @@ const Navbar = () => {
             <div>
               <Avatar>
                 <AvatarImage src={user?.profilePicture} alt="profilephoto" />
-                <AvatarFallback>CN</AvatarFallback>
+                <AvatarFallback>
+                  {user?.fullname
+                    ? user.fullname.split(' ').map((name) => name[0]).join('')
+                    : 'CN'}
+                </AvatarFallback>
               </Avatar>
+
             </div>
             <div>
               {loading ? (
@@ -216,7 +226,7 @@ const MobileNavbar = () => {
             <span>Profile</span>
           </Link>
           <Link
-            to="/order/status"
+            to="/order/success"
             className="flex items-center gap-4 hover:bg-gray-200 px-3 py-2 rounded-lg cursor-pointer hover:text-gray-900 font-medium"
           >
             <HandPlatter />
@@ -229,7 +239,7 @@ const MobileNavbar = () => {
             <ShoppingCart />
             <span>Cart (0)</span>
           </Link>
-          {user?.admin && (
+          {(user?.role === "admin" || user?.role === "restaurant_owner") && (
             <>
               <Link
                 to="/admin/menu"
@@ -258,10 +268,15 @@ const MobileNavbar = () => {
         <SheetFooter className="flex flex-col gap-4">
           <div className="flex flex-row items-center gap-2">
             <Avatar>
-              <AvatarImage src={user?.profilePicture} />
-              <AvatarFallback>CN</AvatarFallback>
+              <AvatarImage src={user?.profilePicture} alt="profilephoto" />
+              <AvatarFallback>
+                {user?.fullname
+                  ? user.fullname.split(' ').map((name) => name[0]).join('')
+                  : 'CN'}
+              </AvatarFallback>
             </Avatar>
-            <h1 className="font-bold">FoodiNest</h1>
+
+            <h1 className="font-bold">{user?.fullname || "User"}</h1>
           </div>
           <SheetClose asChild>
             {loading ? (
