@@ -4,7 +4,6 @@ import axiosInstance from "@/axios";
 import { LoginInputState, SignupInputState } from "@/schema/userSchema";
 import { toast } from "sonner";
 
-// Use the axios instance from axios.ts
 const API_END_POINT = "/user";
 
 type User = {
@@ -20,7 +19,9 @@ type User = {
   isVerified: boolean;
   role: "user" | "admin" | "restaurant_owner";
   restaurant?: any;
-}
+};
+
+type UpdateProfileInput = Partial<User>;
 
 type UserState = {
   user: User | null;
@@ -34,189 +35,159 @@ type UserState = {
   logout: () => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (token: string, newPassword: string) => Promise<void>;
-  updateProfile: (input: any) => Promise<void>;
+  updateProfile: (input: UpdateProfileInput) => Promise<void>;
   makeAdmin: () => Promise<void>;
-}
+};
 
-export const useUserStore = create<UserState>()(persist((set, get) => ({
-  user: null,
-  isAuthenticated: false,
-  isCheckingAuth: true,
-  loading: false,
+export const useUserStore = create<UserState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      isAuthenticated: false,
+      isCheckingAuth: true,
+      loading: false,
 
-  
-  // signup api implementation
-  signup: async (input: SignupInputState) => {
-    try {
-      set({ loading: true });
-      const response = await axiosInstance.post(`${API_END_POINT}/signup`, input, {
-        headers: {
-          'Content-Type': 'application/json'
+      signup: async (input) => {
+        try {
+          set({ loading: true });
+          const { data } = await axiosInstance.post(`${API_END_POINT}/signup`, input);
+          toast.success(data.message);
+          set({ user: data.user, isAuthenticated: true });
+        } catch (error: any) {
+          toast.error(error.response?.data?.message || "Signup failed");
+        } finally {
+          set({ loading: false });
         }
-      });
-      if (response.data.success) {
-        toast.success(response.data.message);
-        set({ loading: false, user: response.data.user, isAuthenticated: true });
-      }
-    } catch (error: any) {
-      toast.error(error.response.data.message);
-      set({ loading: false });
-    }
-  },
-  login: async (input: LoginInputState) => {
-    try {
-      set({ loading: true });
-      const response = await axiosInstance.post(`${API_END_POINT}/login`, input, {
-        headers: {
-          'Content-Type': 'application/json'
+      },
+
+      login: async (input) => {
+        try {
+          set({ loading: true });
+          const { data } = await axiosInstance.post(`${API_END_POINT}/login`, input);
+          toast.success(data.message);
+          set({ user: data.user, isAuthenticated: true });
+        } catch (error: any) {
+          toast.error(error.response?.data?.message || "Login failed");
+        } finally {
+          set({ loading: false });
         }
-      });
-      if (response.data.success) {
-        toast.success(response.data.message);
-        set({ loading: false, user: response.data.user, isAuthenticated: true });
-      }
-    } catch (error: any) {
-      toast.error(error.response.data.message);
-      set({ loading: false });
-    }
-  },
-  verifyEmail: async (verificationCode: string) => {
-    try {
-      set({ loading: true });
-      const response = await axiosInstance.post(`${API_END_POINT}/verify-email`, { verificationCode }, {
-        headers: {
-          'Content-Type': 'application/json'
+      },
+
+      verifyEmail: async (verificationCode) => {
+        try {
+          set({ loading: true });
+          const { data } = await axiosInstance.post(`${API_END_POINT}/verify-email`, { verificationCode });
+          toast.success(data.message);
+          set({ user: data.user, isAuthenticated: true });
+        } catch (error: any) {
+          toast.error(error.response?.data?.message || "Verification failed");
+        } finally {
+          set({ loading: false });
         }
-      });
-      if (response.data.success) {
-        toast.success(response.data.message);
-        set({ loading: false, user: response.data.user, isAuthenticated: true });
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Verification failed");
-      set({ loading: false });
-    }
-  },
-  checkAuthentication: async () => {
-    try {
-      // Only set isCheckingAuth to true if it's not already true
-      // This prevents multiple state updates that can cause blinking
-      if (!get().isCheckingAuth) {
-        set({ isCheckingAuth: true });
-      }
-      
-      // Add a shorter timeout to prevent long loading
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Authentication check timed out')), 2000);
-      });
-      
-      const authPromise = axiosInstance.get(`${API_END_POINT}/check-auth`);
-      
-      const response = await Promise.race([authPromise, timeoutPromise]) as any;
-      
-      if (response.data.success) {
-        console.log("User data from check-auth:", response.data.user);
-        // Update all states at once to prevent blinking
-        set({ 
-          user: response.data.user, 
-          isAuthenticated: true, 
-          isCheckingAuth: false,
-          loading: false 
-        });
-      }
-    } catch (error) {
-      console.error("Error checking authentication:", error);
-      // Set all states at once to prevent blinking
-      set({ 
-        isAuthenticated: false, 
-        isCheckingAuth: false,
-        loading: false,
-        user: null
-      });
-    }
-  },
-  logout: async () => {
-    try {
-      // Set loading state without triggering a re-render
-      set((state) => ({ ...state, loading: true }));
-      
-      const response = await axiosInstance.post(`${API_END_POINT}/logout`, {});
-      if (response.data.success) {
-        toast.success(response.data.message);
-        // Reset all states at once to prevent blinking
-        set({ 
-          user: null, 
-          isAuthenticated: false, 
-          loading: false,
-          isCheckingAuth: false 
-        });
-        
-        // Force a page reload to clear any lingering state
-        window.location.href = "/login";
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to logout");
-      // Reset loading state on error
-      set({ loading: false });
-    }
-  },
-  forgotPassword: async (email: string) => {
-    try {
-      set({ loading: true });
-      const response = await axiosInstance.post(`${API_END_POINT}/forgot-password`, { email });
-      if (response.data.success) {
-        toast.success(response.data.message);
-        set({ loading: false });
-      }
-    } catch (error: any) {
-      toast.error(error.response.data.message);
-      set({ loading: false });
-    }
-  },
-  resetPassword: async (token: string, newPassword: string) => {
-    try {
-      set({ loading: true });
-      const response = await axiosInstance.post(`${API_END_POINT}/reset-password/${token}`, { newPassword });
-      if (response.data.success) {
-        toast.success(response.data.message);
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Something went wrong");
-    } finally {
-      set({ loading: false });
-    }
-  },
-  
-  updateProfile: async (input: any) => {
-    try {
-      const response = await axiosInstance.put(`${API_END_POINT}/profile/update`, input, {
-        headers: {
-          'Content-Type': 'application/json'
+      },
+
+      checkAuthentication: async () => {
+        try {
+          if (!get().isCheckingAuth) set({ isCheckingAuth: true });
+
+          const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Auth check timeout")), 2000)
+          );
+
+          const response = await Promise.race([
+            axiosInstance.get(`${API_END_POINT}/check-auth`),
+            timeout,
+          ]) as any;
+
+          const { data } = response;
+          if (data.success) {
+            console.log("User data from check-auth:", data.user);
+            set({
+              user: data.user,
+              isAuthenticated: true,
+              isCheckingAuth: false,
+              loading: false,
+            });
+          }
+        } catch (error) {
+          console.error("Auth check error:", error);
+          set({
+            user: null,
+            isAuthenticated: false,
+            isCheckingAuth: false,
+            loading: false,
+          });
         }
-      });
-      if (response.data.success) {
-        toast.success(response.data.message);
-        set({ user: response.data.user, isAuthenticated: true });
-      }
-    } catch (error: any) {
-      toast.error(error.response.data.message);
+      },
+
+      logout: async () => {
+        try {
+          set({ loading: true });
+          const { data } = await axiosInstance.post(`${API_END_POINT}/logout`);
+          toast.success(data.message);
+          set({
+            user: null,
+            isAuthenticated: false,
+            loading: false,
+            isCheckingAuth: false,
+          });
+          window.location.href = "/login";
+        } catch (error: any) {
+          toast.error(error.response?.data?.message || "Logout failed");
+          set({ loading: false });
+        }
+      },
+
+      forgotPassword: async (email) => {
+        try {
+          set({ loading: true });
+          const { data } = await axiosInstance.post(`${API_END_POINT}/forgot-password`, { email });
+          toast.success(data.message);
+        } catch (error: any) {
+          toast.error(error.response?.data?.message || "Failed to send reset email");
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      resetPassword: async (token, newPassword) => {
+        try {
+          set({ loading: true });
+          const { data } = await axiosInstance.post(`${API_END_POINT}/reset-password/${token}`, { newPassword });
+          toast.success(data.message);
+        } catch (error: any) {
+          toast.error(error.response?.data?.message || "Password reset failed");
+        } finally {
+          set({ loading: false });
+        }
+      },
+
+      updateProfile: async (input) => {
+        try {
+          const { data } = await axiosInstance.put(`${API_END_POINT}/profile/update`, input);
+          toast.success(data.message);
+          set({ user: data.user });
+        } catch (error: any) {
+          toast.error(error.response?.data?.message || "Failed to update profile");
+        }
+      },
+
+      makeAdmin: async () => {
+        try {
+          set({ loading: true });
+          const { data } = await axiosInstance.post(`${API_END_POINT}/make-admin`);
+          toast.success(data.message);
+          set({ user: data.user });
+        } catch (error: any) {
+          toast.error(error.response?.data?.message || "Failed to make user admin");
+        } finally {
+          set({ loading: false });
+        }
+      },
+    }),
+    {
+      name: "user-store",
+      storage: createJSONStorage(() => localStorage),
     }
-  },
-  
-  makeAdmin: async () => {
-    try {
-      set({ loading: true });
-      const response = await axiosInstance.post(`${API_END_POINT}/make-admin`, {});
-      if (response.data.success) {
-        toast.success(response.data.message);
-        set({ loading: false, user: response.data.user, isAuthenticated: true });
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to make user admin");
-      set({ loading: false });
-    }
-  },
-}), {
-  name: 'user-name',
-  storage: createJSONStorage(() => localStorage),
-}));
+  )
+);

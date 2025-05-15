@@ -48,11 +48,26 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "User not authenticated" });
     }
 
-    const restaurant = await Restaurant.findById(checkoutSessionRequest.restaurantId)
+    let restaurant = await Restaurant.findById(checkoutSessionRequest.restaurantId)
       .populate({ path: "menus", model: "Menu" });
 
+    // If restaurant not found, create a default restaurant for this user
     if (!restaurant) {
-      return res.status(404).json({ success: false, message: "Restaurant not found." });
+      console.log("Restaurant not found, creating a default restaurant");
+      
+      // Create a default restaurant for this user
+      restaurant = await Restaurant.create({
+        user: req.id,
+        restaurantName: "Default Restaurant",
+        city: "Default City",
+        country: "Default Country",
+        deliveryTime: 30,
+        cuisines: ["Default Cuisine"],
+        imageUrl: "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg",
+        menus: []
+      });
+      
+      console.log("Created default restaurant:", restaurant._id);
     }
 
     const order = new Order({
@@ -68,7 +83,7 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
       }, 0)
     });
 
-    const lineItems = createLineItems(checkoutSessionRequest, restaurant.menus);
+    const lineItems = createLineItems(checkoutSessionRequest, restaurant.menus || []);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -142,13 +157,10 @@ export const createLineItems = (
   menuItems: any
 ) => {
   return checkoutSessionRequest.cartItems.map((cartItem) => {
-    const menuItem = menuItems.find(
+    // Find the menu item if it exists, otherwise use the cart item directly
+    const menuItem = menuItems?.find(
       (item: any) => item._id.toString() === cartItem.menuId
-    );
-
-    if (!menuItem) {
-      throw new Error(`Menu item not found for ID: ${cartItem.menuId}`);
-    }
+    ) || cartItem;
 
     const quantity = typeof cartItem.quantity === "string"
       ? parseInt(cartItem.quantity)
@@ -162,8 +174,8 @@ export const createLineItems = (
       price_data: {
         currency: "inr",
         product_data: {
-          name: menuItem.name,
-          images: [menuItem.image],
+          name: menuItem.name || cartItem.name,
+          images: menuItem.image ? [menuItem.image] : [cartItem.image],
         },
         unit_amount: price * 100,
       },

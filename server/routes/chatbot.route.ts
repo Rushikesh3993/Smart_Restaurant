@@ -6,14 +6,13 @@
 // router.post("/", chatWithGemini); // ✅ correct function name
 
 // export default router;
+import { Router } from "express";
+import { chatbotController } from "../controller/chatbot.controller";
 
+const router = Router();
 
-import express from "express";
-import { chatbotHandler } from "../controller/chatbot.controller";
-
-const router = express.Router();
-
-// POST /api/chatbot
-router.post("/", chatbotHandler);
+router.post("/chat", chatbotController);
 
 export default router;
+
+
