@@ -32,7 +32,7 @@ app.post("/api/v1/order/webhook", express.raw({ type: "application/json" }), str
 // ✅ Middleware setup (in correct order)
 app.use(cookieParser()); // 🍪 Parse cookies
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174"], // Frontend URLs
+  origin: ["https://smart-restaurant-zdmu.onrender.com", "http://localhost:5174"], // Frontend URLs
   credentials: true                // Allow cookies
 }));
 app.use(express.json({ limit: "10mb" })); // Parse JSON

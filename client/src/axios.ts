@@ -3,7 +3,7 @@ import axios from "axios";
 
 // Create an Axios instance with default settings
 const instance = axios.create({
-  baseURL: "http://localhost:8000/api/v1",
+  baseURL: "https://smart-restaurant-zdmu.onrender.com /api/v1",
   withCredentials: true,
   timeout: 3000, // 3 second timeout
   headers: {
