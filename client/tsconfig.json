@@ -9,15 +9,15 @@
     "resolveJsonModule": true, 
     "strict": true, 
     "target": "ES2020", 
-    "module": "ESNext", 
+    "module": "CommonJS", 
     "outDir": "dist", 
     "allowJs": false, 
-    "noEmit": true, 
+    "noEmit": false, 
     "skipLibCheck": true,
     "jsx": "react-jsx"
   },
   "include": [
-    "src/**/*",  // Include the src directory for path alias resolution
+    "src/**/*",
     "server/**/*",
     "server/sib-api-v3-sdk.d.ts"
   ]

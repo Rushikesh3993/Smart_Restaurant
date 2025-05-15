@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-"scripts": {
-  "dev": "NODE_OPTIONS='--max-old-space-size=4096' nodemon server/index.ts",
-  "stripe": "stripe listen --forward-to localhost:8000/api/v1/order/webhook",
-  "build": "npm install && npm install --prefix client && npm run build --prefix client",
-  "start": "NODE_OPTIONS='--max-old-space-size=4096' ts-node server/index.ts"
-
-},
+  "scripts": {
+    "dev": "NODE_OPTIONS='--max-old-space-size=4096' nodemon server/index.ts",
+    "stripe": "stripe listen --forward-to localhost:8000/api/v1/order/webhook",
+    "build": "npm install && npm install --prefix client && npm run build --prefix client && npm run tsc",
+    "tsc": "tsc",
+    "start": "NODE_OPTIONS='--max-old-space-size=4096' node dist/server/index.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
