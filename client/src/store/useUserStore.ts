@@ -4,7 +4,7 @@ import axiosInstance from "@/axios";
 import { LoginInputState, SignupInputState } from "@/schema/userSchema";
 import { toast } from "sonner";
 
-const API_END_POINT = "https://smart-restaurant-zdmu.onrender.com/user";
+const API_END_POINT = "/user";
 
 type User = {
   _id: string;
