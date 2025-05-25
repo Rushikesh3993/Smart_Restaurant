@@ -41,11 +41,15 @@ const Cart = () => {
             <TableHead className="text-right">Remove</TableHead>
           </TableRow>
         </TableHeader>
-        {cart.length === 0 ? (
-          <div className="text-center text-lg">Your cart is empty.</div>
-        ) : (
-          <TableBody>
-            {cart.map((item: CartItem) => (
+        <TableBody>
+          {cart.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center text-lg">
+                Your cart is empty.
+              </TableCell>
+            </TableRow>
+          ) : (
+            cart.map((item: CartItem) => (
               <TableRow key={item._id}>
                 <TableCell>
                   <Avatar>
@@ -87,26 +91,30 @@ const Cart = () => {
                   </Button>
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        )}
+            ))
+          )}
+        </TableBody>
 
-        <TableFooter>
-          <TableRow className="text-2xl font-bold">
-            <TableCell colSpan={5}>Total</TableCell>
-            <TableCell className="text-right">{totalAmount}</TableCell>
-          </TableRow>
-        </TableFooter>
+        {cart.length > 0 && (
+          <TableFooter>
+            <TableRow className="text-2xl font-bold">
+              <TableCell colSpan={5}>Total</TableCell>
+              <TableCell className="text-right">{totalAmount}</TableCell>
+            </TableRow>
+          </TableFooter>
+        )}
       </Table>
 
-      <div className="flex justify-end my-5">
-        <Button
-          onClick={() => setOpen(true)}
-          className="bg-orange hover:bg-hoverOrange dark:bg-orange-500 dark:hover:bg-hoverOrange-500"
-        >
-          Proceed To Checkout
-        </Button>
-      </div>
+      {cart.length > 0 && (
+        <div className="flex justify-end my-5">
+          <Button
+            onClick={() => setOpen(true)}
+            className="bg-orange hover:bg-hoverOrange dark:bg-orange-500 dark:hover:bg-hoverOrange-500"
+          >
+            Proceed To Checkout
+          </Button>
+        </div>
+      )}
       <CheckoutConfirmPage open={open} setOpen={setOpen} />
     </div>
   );

@@ -167,9 +167,12 @@ export const useRestaurantStore = create<RestaurantState>()(
           const response = await axiosInstance.get(`${API_END_POINT}/order`);
           if (response.data.success) {
             set({ restaurantOrder: response.data.orders });
+          } else {
+            toast.error(response.data.message || "Failed to fetch orders");
           }
-        } catch (error) {
+        } catch (error: any) {
           console.log("Error fetching orders", error);
+          toast.error(error?.response?.data?.message || "Failed to fetch orders");
         }
       },
 
@@ -183,15 +186,16 @@ export const useRestaurantStore = create<RestaurantState>()(
 
           if (response.data.success) {
             const updatedOrders = get().restaurantOrder.map((order) =>
-              order._id === orderId ? { ...order, status: response.data.status } : order
+              order._id === orderId ? { ...order, status } : order
             );
             set({ restaurantOrder: updatedOrders });
-            toast.success(response.data.message);
+            toast.success(response.data.message || "Order updated successfully");
           }
         } catch (error: any) {
           toast.error(error.response?.data?.message || "Failed to update order.");
         }
       },
+
     }),
     {
       name: "restaurant-store",

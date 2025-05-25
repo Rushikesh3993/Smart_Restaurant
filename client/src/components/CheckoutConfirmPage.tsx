@@ -15,6 +15,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useRestaurantStore } from "@/store/useRestaurantStore";
 import { useOrderStore } from "@/store/useOrderStore";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const CheckoutConfirmPage = ({
   open,
@@ -32,17 +33,22 @@ const CheckoutConfirmPage = ({
     city: user?.city || "",
     country: user?.country || "",
   });
-  const { cart } = useCartStore();
-  const { restaurant } = useRestaurantStore();
+  const { cart, restaurantId } = useCartStore();
   const { createCheckoutSession, loading } = useOrderStore();
+
   const changeEventHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setInput({ ...input, [name]: value });
   };
+
   const checkoutHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // api implementation start from here
     try {
+      if (!restaurantId) {
+        toast.error("Restaurant information is missing");
+        return;
+      }
+
       const checkoutData: CheckoutSessionRequest = {
         cartItems: cart.map((cartItem) => ({
           menuId: cartItem._id,
@@ -52,11 +58,14 @@ const CheckoutConfirmPage = ({
           quantity: cartItem.quantity.toString(),
         })),
         deliveryDetails: input,
-        restaurantId: restaurant?._id as string,
+        restaurantId: restaurantId,
       };
+
+      console.log("Creating checkout session with data:", checkoutData);
       await createCheckoutSession(checkoutData);
-    } catch (error) {
-      console.log(error);
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+      toast.error(error?.message || "Failed to process checkout");
     }
   };
 
@@ -79,6 +88,7 @@ const CheckoutConfirmPage = ({
               name="name"
               value={input.name}
               onChange={changeEventHandler}
+              required
             />
           </div>
           <div>
@@ -89,6 +99,7 @@ const CheckoutConfirmPage = ({
               name="email"
               value={input.email}
               onChange={changeEventHandler}
+              required
             />
           </div>
           <div>
@@ -98,6 +109,7 @@ const CheckoutConfirmPage = ({
               name="contact"
               value={input.contact}
               onChange={changeEventHandler}
+              required
             />
           </div>
           <div>
@@ -107,6 +119,7 @@ const CheckoutConfirmPage = ({
               name="address"
               value={input.address}
               onChange={changeEventHandler}
+              required
             />
           </div>
           <div>
@@ -116,6 +129,7 @@ const CheckoutConfirmPage = ({
               name="city"
               value={input.city}
               onChange={changeEventHandler}
+              required
             />
           </div>
           <div>
@@ -125,6 +139,7 @@ const CheckoutConfirmPage = ({
               name="country"
               value={input.country}
               onChange={changeEventHandler}
+              required
             />
           </div>
           <DialogFooter className="col-span-2 pt-5">
@@ -134,7 +149,7 @@ const CheckoutConfirmPage = ({
                 Please wait
               </Button>
             ) : (
-              <Button className="bg-orange hover:bg-hoverOrange">
+              <Button type="submit" className="bg-orange hover:bg-hoverOrange">
                 Continue To Payment
               </Button>
             )}

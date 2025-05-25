@@ -4,6 +4,8 @@ import {
   createCheckoutSession,
   getOrders,
   stripeWebhook,
+  updateOrderStatus,
+  getOrderById,
 } from "../controller/order.controller";
 
 const router = express.Router();
@@ -15,6 +17,11 @@ router.route("/").get(isAuthenticated, getOrders);
 router
   .route("/checkout/create-checkout-session")
   .post(isAuthenticated, createCheckoutSession);
+
+router.route("/update-order-status").put(isAuthenticated, updateOrderStatus);
+
+// ✅ Get order by ID (needs auth)
+router.route("/:id").get(isAuthenticated, getOrderById);
 
 // ✅ Stripe webhook (raw body needed)
 router

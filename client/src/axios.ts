@@ -3,7 +3,7 @@ import axios from "axios";
 
 // Create an Axios instance with default settings
 const instance = axios.create({
-  baseURL: "https://smart-restaurant-zdmu.onrender.com/api/v1",
+  baseURL: "http://localhost:8000/api/v1",
   withCredentials: true,
   timeout: 3000, // 3 second timeout
   headers: {
@@ -47,7 +47,7 @@ instance.interceptors.request.use(
                           config.url?.includes('/verify-email');
     
     // For non-auth requests, check if we have a token in localStorage as backup
-    if (!isAuthRequest && !document.cookie.includes('token')) {
+    if (!isAuthRequest) {
       const token = localStorage.getItem('auth_token');
       if (token) {
         // Add token to request headers

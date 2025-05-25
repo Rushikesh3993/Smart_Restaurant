@@ -1,9 +1,11 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { Request, Response } from "express";
-import { Restaurant } from "../models/restaurant.model";
+import { Restaurant, IRestaurantDocument } from "../models/restaurant.model";
 import { Order, IOrder } from "../models/order.model";
 import Stripe from "stripe";
+import { Menu, IMenu } from "../models/menu.model";
+import mongoose from "mongoose";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 console.log("STRIPE_SECRET_KEY:", process.env.STRIPE_SECRET_KEY);
@@ -29,14 +31,21 @@ type CheckoutSessionRequest = {
 
 export const getOrders = async (req: Request, res: Response) => {
   try {
-    const orders = await Order.find({ user: req.id });
-    if (!orders || orders.length === 0) {
-      return res.status(404).json({ message: "No orders found." });
-    }
-    return res.status(200).json({ orders });
+    const orders = await Order.find({ user: req.id })
+      .populate<{ restaurant: IRestaurantDocument }>({
+        path: "restaurant",
+        select: "restaurantName city country",
+      })
+      .populate<{ cartItems: { menuId: string; name: string; image: string; price: number; quantity: number }[] }>({
+        path: "cartItems",
+        select: "name price image quantity",
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);
-    return res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Error fetching orders" });
   }
 };
 
@@ -48,30 +57,27 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: "User not authenticated" });
     }
 
-    let restaurant = await Restaurant.findById(checkoutSessionRequest.restaurantId)
-      .populate({ path: "menus", model: "Menu" });
+    // Find the restaurant for each menu item in the cart
+    let restaurant: IRestaurantDocument | null = null;
+    if (checkoutSessionRequest.cartItems && checkoutSessionRequest.cartItems.length > 0) {
+      const menuIds = checkoutSessionRequest.cartItems.map(item => item.menuId);
+      const restaurants = await Restaurant.find({ menus: { $in: menuIds } });
+      if (restaurants.length === 1) {
+        restaurant = await Restaurant.findById(restaurants[0]._id).populate({ path: "menus", model: "Menu" }) as IRestaurantDocument | null;
+      } else {
+        return res.status(400).json({ success: false, message: "All items in cart must be from the same restaurant." });
+      }
+    }
+    if (!restaurant && checkoutSessionRequest.restaurantId) {
+      restaurant = await Restaurant.findById(checkoutSessionRequest.restaurantId).populate({ path: "menus", model: "Menu" }) as IRestaurantDocument | null;
+    }
 
-    // If restaurant not found, create a default restaurant for this user
     if (!restaurant) {
-      console.log("Restaurant not found, creating a default restaurant");
-      
-      // Create a default restaurant for this user
-      restaurant = await Restaurant.create({
-        user: req.id,
-        restaurantName: "Default Restaurant",
-        city: "Default City",
-        country: "Default Country",
-        deliveryTime: 30,
-        cuisines: ["Default Cuisine"],
-        imageUrl: "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg",
-        menus: []
-      });
-      
-      console.log("Created default restaurant:", restaurant._id);
+      return res.status(400).json({ success: false, message: "Could not determine the restaurant for this order." });
     }
 
     const order = new Order({
-      restaurant: restaurant._id,
+      restaurant: (restaurant as IRestaurantDocument)._id,
       user: req.id,
       deliveryDetails: checkoutSessionRequest.deliveryDetails,
       cartItems: checkoutSessionRequest.cartItems,
@@ -83,7 +89,7 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
       }, 0)
     });
 
-    const lineItems = createLineItems(checkoutSessionRequest, restaurant.menus || []);
+    const lineItems = createLineItems(checkoutSessionRequest, (restaurant as IRestaurantDocument).menus || []);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -92,7 +98,7 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
       },
       line_items: lineItems,
       mode: "payment",
-      success_url: `${process.env.FRONTEND_URL}/order/success`,
+      success_url: `${process.env.FRONTEND_URL}/order/success?orderId=${order._id.toString()}`,
       cancel_url: `${process.env.FRONTEND_URL}/cart`,
       metadata: {
         orderId: order._id.toString(),
@@ -105,6 +111,7 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
     }
 
     await order.save();
+    console.log("Order saved. Order.restaurant:", order.restaurant);
 
     return res.status(200).json({
       success: true,
@@ -152,6 +159,34 @@ export const stripeWebhook = async (req: Request, res: Response) => {
   res.status(200).send();
 };
 
+export const updateOrderStatus = async (req: Request, res: Response) => {
+  try {
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.status(200).json({
+      message: "Order status updated successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    res.status(500).json({ message: "Error updating order status" });
+  }
+};
+
 export const createLineItems = (
   checkoutSessionRequest: CheckoutSessionRequest,
   menuItems: any
@@ -182,4 +217,79 @@ export const createLineItems = (
       quantity,
     };
   });
+};
+
+export const createOrder = async (req: Request, res: Response) => {
+  try {
+    const { items, totalAmount, deliveryAddress, paymentMethod, restaurantId } = req.body;
+
+    // Validate required fields
+    if (!items || !totalAmount || !deliveryAddress || !paymentMethod || !restaurantId) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Find the restaurant
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+
+    // Create the order
+    const order = new Order({
+      items,
+      totalAmount,
+      deliveryAddress,
+      paymentMethod,
+      restaurant: restaurantId,
+      status: "pending",
+    });
+
+    // Save the order
+    await order.save();
+
+    res.status(201).json({
+      message: "Order created successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    res.status(500).json({ message: "Error creating order" });
+  }
+};
+
+export const getOrderById = async (req: Request, res: Response) => {
+  try {
+    const order = await Order.findById(req.params.id)
+      .populate<{ restaurant: IRestaurantDocument }>({
+        path: "restaurant",
+        select: "restaurantName city country",
+      });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    res.status(200).json(order);
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    res.status(500).json({ message: "Error fetching order" });
+  }
+};
+
+export const getRestaurantOrders = async (req: Request, res: Response) => {
+  try {
+    const restaurantId = req.params.restaurantId;
+
+    const orders = await Order.find({ restaurant: restaurantId })
+      .populate<{ cartItems: { menuId: string; name: string; image: string; price: number; quantity: number }[] }>({
+        path: "cartItems",
+        select: "name price image quantity",
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("Error fetching restaurant orders:", error);
+    res.status(500).json({ message: "Error fetching restaurant orders" });
+  }
 };

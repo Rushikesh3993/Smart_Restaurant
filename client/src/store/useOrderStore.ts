@@ -1,44 +1,79 @@
 import { CheckoutSessionRequest, OrderState } from "@/types/orderType";
-import axios from "axios";
+import axiosInstance from "@/axios";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { useUserStore } from "./useUserStore";
 
+interface OrderStore {
+  currentOrder: any;
+  loading: boolean;
+  error: string | null;
+  createOrder: (orderData: any) => Promise<void>;
+  getOrderById: (orderId: string) => Promise<void>;
+  clearCurrentOrder: () => void;
+  createCheckoutSession: (checkoutSession: CheckoutSessionRequest) => Promise<void>;
+}
 
-const API_END_POINT: string = "https://smart-restaurant-zdmu.onrender.com/api/v1/order";
-axios.defaults.withCredentials = true;
-
-export const useOrderStore = create<OrderState>()(
+export const useOrderStore = create<OrderStore>()(
   persist(
     (set) => ({
+      currentOrder: null,
       loading: false,
-      orders: [],
+      error: null,
+
+      createOrder: async (orderData) => {
+        set({ loading: true, error: null });
+        try {
+          const { data } = await axiosInstance.post("/order", orderData);
+          set({ currentOrder: data, loading: false });
+          localStorage.setItem('currentOrderId', data._id);
+        } catch (error: any) {
+          set({
+            error: error.response?.data?.message || "Failed to create order",
+            loading: false,
+          });
+          throw error;
+        }
+      },
+
+      getOrderById: async (orderId: string) => {
+        set({ loading: true, error: null });
+        try {
+          const { data } = await axiosInstance.get(`/order/${orderId}`);
+          set({ currentOrder: data, loading: false });
+          localStorage.setItem('currentOrderId', data._id);
+        } catch (error: any) {
+          set({
+            error: error.response?.data?.message || "Failed to fetch order",
+            loading: false,
+          });
+          throw error;
+        }
+      },
+
+      clearCurrentOrder: () => {
+        set({ currentOrder: null });
+        localStorage.removeItem('currentOrderId');
+      },
 
       createCheckoutSession: async (checkoutSession: CheckoutSessionRequest) => {
         try {
-          set({ loading: true });
+          set({ loading: true, error: null });
 
-          console.log("Token from cookies (frontend):", document.cookie);
-
-          // 🔁 Transform price and quantity to numbers
+          // Transform price and quantity to numbers
           const transformedCartItems = checkoutSession.cartItems.map((item) => ({
             ...item,
-            price: Number(item.price),
-            quantity: Number(item.quantity),
+            price: typeof item.price === 'string' ? parseFloat(item.price) : item.price,
+            quantity: typeof item.quantity === 'string' ? parseInt(item.quantity) : item.quantity,
           }));
 
-          const response = await axios.post(
-            `${API_END_POINT}/checkout/create-checkout-session`,
+          const response = await axiosInstance.post(
+            "/order/checkout/create-checkout-session",
             {
               ...checkoutSession,
               cartItems: transformedCartItems,
-              restaurantId: checkoutSession.restaurantId, // Replace if dynamically fetched
-            },
-            {
-              headers: {
-                "Content-Type": "application/json",
-              },
-              withCredentials: true, // ✅ Send cookie with request
+              restaurantId: checkoutSession.restaurantId,
             }
           );
 
@@ -46,36 +81,25 @@ export const useOrderStore = create<OrderState>()(
 
           if (response.data?.sessionUrl) {
             window.location.href = response.data.sessionUrl;
-          }
-           else {
+          } else {
             console.error("❌ Stripe session URL not found in response");
             toast.error("Failed to redirect to payment");
+            set({ error: "Failed to redirect to payment" });
           }
 
           set({ loading: false });
         } catch (error: any) {
           console.error("❌ createCheckoutSession failed:", error?.response?.data || error.message);
-          set({ loading: false });
-        }
-      },
-
-      getOrderDetails: async () => {
-        try {
-          set({ loading: true });
-
-          const response = await axios.get(`${API_END_POINT}/`, {
-            withCredentials: true, // ✅ Automatically includes token cookie
+          set({ 
+            loading: false, 
+            error: error?.response?.data?.message || "Failed to create checkout session" 
           });
-
-          set({ loading: false, orders: response.data.orders });
-        } catch (error: any) {
-          console.error("❌ getOrderDetails failed:", error?.response?.data || error.message);
-          set({ loading: false });
+          toast.error(error?.response?.data?.message || "Failed to create checkout session");
         }
       },
     }),
     {
-      name: "order-name",
+      name: "order-store",
       storage: createJSONStorage(() => localStorage),
     }
   )
