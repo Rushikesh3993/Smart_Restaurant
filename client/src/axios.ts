@@ -1,9 +1,14 @@
 // src/axios.ts
 import axios from "axios";
 
+const baseURL =
+  process.env.NODE_ENV === "production"
+    ? "/api/v1" // in production, use same domain with relative API path
+    : "http://localhost:8000/api/v1"; // in local dev, hit your local backend
+
 // Create an Axios instance with default settings
 const instance = axios.create({
-  baseURL: "http://localhost:8000/api/v1",
+  baseURL,
   withCredentials: true,
   timeout: 3000, // 3 second timeout
   headers: {
