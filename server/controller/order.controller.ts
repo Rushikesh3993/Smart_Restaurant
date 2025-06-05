@@ -61,18 +61,25 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
     let restaurant: IRestaurantDocument | null = null;
     if (checkoutSessionRequest.cartItems && checkoutSessionRequest.cartItems.length > 0) {
       const menuIds = checkoutSessionRequest.cartItems.map(item => item.menuId);
+      console.log("🔍 Looking for restaurant with menuIds:", menuIds);
       const restaurants = await Restaurant.find({ menus: { $in: menuIds } });
+      console.log("📦 Found restaurants:", restaurants.map(r => r._id));
       if (restaurants.length === 1) {
         restaurant = await Restaurant.findById(restaurants[0]._id).populate({ path: "menus", model: "Menu" }) as IRestaurantDocument | null;
+        console.log("✅ Found restaurant:", restaurant?._id);
       } else {
+        console.log("❌ Multiple or no restaurants found for menu items");
         return res.status(400).json({ success: false, message: "All items in cart must be from the same restaurant." });
       }
     }
     if (!restaurant && checkoutSessionRequest.restaurantId) {
+      console.log("🔍 Looking for restaurant by ID:", checkoutSessionRequest.restaurantId);
       restaurant = await Restaurant.findById(checkoutSessionRequest.restaurantId).populate({ path: "menus", model: "Menu" }) as IRestaurantDocument | null;
+      console.log("✅ Found restaurant by ID:", restaurant?._id);
     }
 
     if (!restaurant) {
+      console.log("❌ No restaurant found");
       return res.status(400).json({ success: false, message: "Could not determine the restaurant for this order." });
     }
 
