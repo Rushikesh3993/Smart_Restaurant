@@ -12,25 +12,24 @@ export const useCartStore = create<CartState>()(
       addToCart: (item: MenuItem) => {
         const currentRestaurantId = get().restaurantId;
 
-        // 🧠 If cart is empty or same restaurant, proceed
         if (!currentRestaurantId || currentRestaurantId === item.restaurantId) {
           set((state) => {
-            const existingItem = state.cart.find((cartItem) => cartItem._id === item._id);
+            const existingItem = state.cart.find(
+              (cartItem) => cartItem._id === item._id
+            );
 
-            if (existingItem) {
-              return {
-                cart: state.cart.map((cartItem) =>
+            const updatedCart = existingItem
+              ? state.cart.map((cartItem) =>
                   cartItem._id === item._id
                     ? { ...cartItem, quantity: cartItem.quantity + 1 }
                     : cartItem
-                ),
-              };
-            } else {
-              return {
-                cart: [...state.cart, { ...item, quantity: 1 }],
-                restaurantId: item.restaurantId,
-              };
-            }
+                )
+              : [...state.cart, { ...item, quantity: 1 }];
+
+            return {
+              cart: updatedCart,
+              restaurantId: state.restaurantId || item.restaurantId,
+            };
           });
         } else {
           alert("You can only add items from one restaurant at a time.");
@@ -62,16 +61,20 @@ export const useCartStore = create<CartState>()(
       },
 
       decrementQuantity: (id: string) => {
-        set((state) => ({
-          cart: state.cart
+        set((state) => {
+          const updatedCart = state.cart
             .map((item) =>
               item._id === id && item.quantity > 1
                 ? { ...item, quantity: item.quantity - 1 }
                 : item
             )
-            .filter((item) => item.quantity > 0),
-          restaurantId: get().cart.length > 1 ? get().restaurantId : null,
-        }));
+            .filter((item) => item.quantity > 0);
+
+          return {
+            cart: updatedCart,
+            restaurantId: updatedCart.length > 0 ? state.restaurantId : null,
+          };
+        });
       },
     }),
     {
